@@ -14,9 +14,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import r2_score, mean_squared_error
 
 
-# ---------------------------
-# Dataset: Tạo sequence từ dữ liệu lưu lượng giao thông
-# ---------------------------
 class TrafficDataset(Dataset):
     def __init__(self, data, window_size):
         """
@@ -36,9 +33,6 @@ class TrafficDataset(Dataset):
         return torch.FloatTensor(seq), torch.FloatTensor(target)
 
 
-# ---------------------------
-# Positional Encoding: Thêm thông tin vị trí vào embedding
-# ---------------------------
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         """
@@ -64,9 +58,6 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-# ---------------------------
-# Transformer Model cho Time Series Forecasting
-# ---------------------------
 class TransformerTimeSeries(nn.Module):
     def __init__(self, input_dim=1, d_model=64, nhead=8, num_layers=2, dropout=0.1, window_size=64, output_dim=1):
         """
@@ -98,15 +89,10 @@ class TransformerTimeSeries(nn.Module):
         return out
 
 
-# ---------------------------
-# Main function: Đọc dữ liệu, huấn luyện, đánh giá và plot kết quả training
-# ---------------------------
 def main(args):
-    # Đọc dữ liệu từ CSV
     data = pd.read_csv(args.file_path, parse_dates=["timestamp"])
     values = data["hourly_traffic_count"].values.reshape(-1, 1)
 
-    # Chuẩn hóa dữ liệu về khoảng [0, 1]
     scaler = MinMaxScaler(feature_range=(0, 1))
     values_scaled = scaler.fit_transform(values)
 
@@ -123,7 +109,6 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Khởi tạo mô hình Transformer với các siêu tham số từ argument
     model = TransformerTimeSeries(
         d_model=args.d_model,
         nhead=args.nhead,
@@ -143,7 +128,7 @@ def main(args):
         model.train()
         train_losses = []
         for seq, target in train_loader:
-            seq = seq.to(device)  # (batch, window_size, 1)
+            seq = seq.to(device)  
             target = target.to(device)
             optimizer.zero_grad()
             output = model(seq)
@@ -155,7 +140,6 @@ def main(args):
         train_loss_history.append(avg_train_loss)
         print(f"Epoch {epoch}/{args.train_epoch} - Train Loss: {avg_train_loss:.4f}")
 
-        # Đánh giá trên tập test
         model.eval()
         test_losses = []
         with torch.no_grad():
@@ -169,13 +153,11 @@ def main(args):
         test_loss_history.append(avg_test_loss)
         print(f"Epoch {epoch}/{args.train_epoch} - Test Loss: {avg_test_loss:.4f}")
 
-        # Lưu checkpoint nếu loss test giảm
         if avg_test_loss < best_val_loss:
             best_val_loss = avg_test_loss
             torch.save(model.state_dict(), args.checkpoint_path)
             print(f"Checkpoint saved at epoch {epoch} with Test Loss: {avg_test_loss:.4f}")
 
-    # Vẽ đồ thị loss của quá trình training và test
     plt.figure(figsize=(10, 6))
     plt.plot(train_loss_history, label="Train Loss")
     plt.plot(test_loss_history, label="Test Loss")
@@ -186,7 +168,6 @@ def main(args):
     plt.savefig(args.plot_path)
     plt.show()
 
-    # Đánh giá trên tập test để tính các metrics
     model.eval()
     predictions = []
     actuals = []
@@ -197,7 +178,6 @@ def main(args):
             predictions.extend(output.cpu().numpy())
             actuals.extend(target.cpu().numpy())
 
-    # Chuyển đổi giá trị về thang ban đầu
     predictions = scaler.inverse_transform(np.array(predictions))
     actuals = scaler.inverse_transform(np.array(actuals))
 
@@ -209,7 +189,6 @@ def main(args):
     print(f"MSE: {mse_value:.4f}")
     print(f"RMSE: {rmse:.4f}")
 
-    # Lưu metrics vào file JSON
     metrics = {
         "epoch": args.train_epoch,
         "r2_score": r2,
@@ -219,7 +198,6 @@ def main(args):
     with open(args.metrics_path, "w") as f:
         json.dump(metrics, f)
 
-    # Lưu model cuối cùng
     torch.save(model.state_dict(), args.model_path)
     print("Final model saved.")
 
