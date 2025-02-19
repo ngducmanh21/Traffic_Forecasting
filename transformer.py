@@ -99,7 +99,7 @@ def main(args):
     window_size = args.time_step  # Dùng time_step làm window size
     dataset = TrafficDataset(values_scaled, window_size)
 
-    # Chia dữ liệu thành train và test (80% train, 20% test)
+    # Chia dữ liệu thành train và test (80 - 20)
     train_size = int(len(dataset) * 0.8)
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
